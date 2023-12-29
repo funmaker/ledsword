@@ -30,7 +30,7 @@ embassy = ["esp-idf-hal?/embassy-sync", "esp-idf-hal?/critical-section", "esp-id
 [dependencies]
 log = { version = "0.4.17", default-features = false }
 esp-idf-sys = { version = "0.33", default-features = false }
-esp-idf-hal = { version = "0.41", optional = true, default-features = false }
+esp-idf-hal = { git = "https://github.com/esp-rs/esp-idf-hal.git", rev = "a5dc68adcffb0bec220acfff41f271c31d44a051", optional = true }
 esp-idf-svc = { version = "0.46", optional = true, default-features = false }
 embedded-svc = { version = "0.25", optional = true, default-features = false }
 
