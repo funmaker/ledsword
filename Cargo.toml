@@ -1,5 +1,5 @@
 [package]
-name = "blink-rs"
+name = "ledsword"
 version = "0.1.0"
 authors = ["Fun Maker <funmaker95@gmail.com>"]
 edition = "2021"

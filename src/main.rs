@@ -63,22 +63,22 @@ fn main() -> Result<(), Box<dyn Error>> {
     
     let mut buffer: LedBuffer<72> = LedBuffer::new();
     
-    let mut adc = AdcDriver::new(
-        peripherals.adc1,
-        &Config::default()
-            .resolution(Resolution10Bit),
-    )?;
-    let mut analog_pin = AdcChannelDriver::<'_, _, Atten11dB<_>>::new(peripherals.pins.gpio36)?;
-    let mut busy_led = PinDriver::output(peripherals.pins.gpio2)?;
-    let mut boot_btn = Debounce::<'_, 10, _, _>::new(PinDriver::input(peripherals.pins.gpio0)?);
-    
-    let i2s = peripherals.i2s0;
-    let data_pin = peripherals.pins.gpio32;
-    let clk_pin = peripherals.pins.gpio25;
-    let ws_pin = peripherals.pins.gpio5;
-    
-    // let mut sender = send::SK9822BitBang::new(data_pin, clk_pin)?;
-    let mut sender = send::SK9822I2s::new(48000, i2s, data_pin, clk_pin, ws_pin)?;
+    // let mut adc = AdcDriver::new(
+    //     peripherals.adc1,
+    //     &Config::default()
+    //         .resolution(Resolution10Bit),
+    // )?;
+    // let mut analog_pin = AdcChannelDriver::<'_, _, Atten11dB<_>>::new(peripherals.pins.gpio36)?;
+    // let mut busy_led = PinDriver::output(peripherals.pins.gpio2)?;
+    // let mut boot_btn = Debounce::<'_, 10, _, _>::new(PinDriver::input(peripherals.pins.gpio0)?);
+    //
+    // let i2s = peripherals.i2s0;
+    // let data_pin = peripherals.pins.gpio32;
+    // let clk_pin = peripherals.pins.gpio25;
+    // let ws_pin = peripherals.pins.gpio5;
+    //
+    // // let mut sender = send::SK9822BitBang::new(data_pin, clk_pin)?;
+    // let mut sender = send::SK9822I2s::new(48000, i2s, data_pin, clk_pin, ws_pin)?;
     
     const DELAY_MS: u32 = 0;
     
@@ -89,44 +89,55 @@ fn main() -> Result<(), Box<dyn Error>> {
     let mut last_print = Instant::now();
     let mut last_sleep = Instant::now();
     
+    
+    let mut test_btn = Debounce::<'_, 10, _, _>::new(PinDriver::input(peripherals.pins.gpio0)?);
+    let mut b_btn = Debounce::<'_, 10, _, _>::new(PinDriver::input(peripherals.pins.gpio32)?);
+    let mut a_btn = Debounce::<'_, 10, _, _>::new(PinDriver::input(peripherals.pins.gpio33)?);
+    let mut busy_led = PinDriver::output(peripherals.pins.gpio2)?;
+    let mut status_led = PinDriver::output(peripherals.pins.gpio15)?;
+    
+    let data_pin = peripherals.pins.gpio27;
+    let clk_pin = peripherals.pins.gpio14;
+    let mut sender = send::SK9822BitBang::new(data_pin, clk_pin)?;
+    
     loop {
         for (pid, pattern) in patterns.iter().enumerate() {
             println!("pattern {pid}");
-            
-            while !boot_btn.falling_edge() {
+        
+            while !a_btn.falling_edge() {
                 busy_led.set_high()?;
-                
+        
                 frame += last_update.elapsed().as_secs_f32() * speed;
                 fps_counter += 1;
                 last_update = Instant::now();
-                
+        
                 buffer.fill_with(frame as usize, 1, pattern);
-                
+        
                 let before_send = Instant::now();
-                
-                sender.send(buffer.to_bytes(), 0)?;
-                
+        
+                sender.send(buffer.to_u32(), 0)?;
+        
                 busy_led.set_low()?;
-                
+        
                 let elapsed = last_print.elapsed().as_secs_f32();
                 if elapsed > 1.0 {
                     println!("{:.2} FPS, took {} us", fps_counter as f32 / elapsed, before_send.elapsed().as_micros());
-                    
+        
                     last_print = Instant::now();
                     fps_counter = 0;
                 }
-                
+        
                 if DELAY_MS > 0 {
                     FreeRtos::delay_ms(DELAY_MS);
                 } else {
                     let elapsed = last_sleep.elapsed().as_secs_f32();
                     if elapsed > 0.1 {
                         FreeRtos::delay_ms(10);
-                        
+        
                         last_sleep = Instant::now();
                     }
-                    
-                    speed = (adc.read(&mut analog_pin)? as f32 / 612.0).max(0.0).powi(2) * 2048.0;
+        
+                    // speed = (adc.read(&mut analog_pin)? as f32 / 612.0).max(0.0).powi(2) * 2048.0;
                 }
             }
         }
